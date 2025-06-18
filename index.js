@@ -1,12 +1,14 @@
+require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 const BpmnModdle = require("bpmn-moddle");
 
 const app = express();
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 4000;
 
 // URL to fetch the BPMN diagram in XML format
-const BPMN_XML_ENDPOINT = process.env.XML_ENDPOINT;
+const BPMN_XML_ENDPOINT =
+  process.env.XML_ENDPOINT || "https://n35nug.csb.app/process.bpmn";
 
 // Endpoint to find a path between two BPMN node IDs
 app.get("/path", async (req, res) => {
@@ -14,7 +16,7 @@ app.get("/path", async (req, res) => {
 
   if (!startNodeId || !endNodeId) {
     return res.status(400).json({
-      error: "Please provide both 'from' and 'to' node IDs as query params",
+      error: "Please provide both 'from' and 'to' node IDs as query parameters",
     });
   }
 
@@ -31,6 +33,19 @@ app.get("/path", async (req, res) => {
     const processDefinition = definitions.rootElements.find(
       (element) => element.$type === "bpmn:Process"
     );
+
+    // Error Handling for elements not found in BPMN
+    if (!processDefinition || !processDefinition.flowElements) {
+      return res
+        .status(500)
+        .json({ error: "Could not find process elements in BPMN" });
+    }
+
+    // Create a map of all elements by their ID
+    const flowNodeMap = {};
+    processDefinition.flowElements.forEach((node) => {
+      flowNodeMap[node.id] = node;
+    });
   } catch (error) {
     console.error("Error during BPMN processing:", error.message);
   }
