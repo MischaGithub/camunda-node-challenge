@@ -34,7 +34,7 @@ app.get("/path", async (req, res) => {
       (element) => element.$type === "bpmn:Process"
     );
 
-    // Error Handling for elements not found in BPMN
+    // Error Handling for elements not found in BP
     if (!processDefinition || !processDefinition.flowElements) {
       return res
         .status(500)
@@ -46,6 +46,22 @@ app.get("/path", async (req, res) => {
     processDefinition.flowElements.forEach((node) => {
       flowNodeMap[node.id] = node;
     });
+
+    // Search to find a path from start to end
+    const visited = new Set();
+    const path = [];
+
+    // Find the path
+    const pathExists = findPathFrom(startNodeId);
+
+    // Checking if the path exists
+    if (pathExists) {
+      return res.json({ from: startNodeId, to: endNodeId, path });
+    } else {
+      return res
+        .status(404)
+        .json({ from: startNodeId, to: endNodeId, error: "No path found" });
+    }
   } catch (error) {
     console.error("Error during BPMN processing:", error.message);
   }
